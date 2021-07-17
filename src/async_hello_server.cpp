@@ -14,7 +14,6 @@
 #include <mutex>
 #include <condition_variable>
 
-
 struct RPCEvent {
     // ok -- status returned from grpc::CompletionQueue
     // At most cases `false` means event was cancelled
@@ -226,7 +225,6 @@ private:
 
 
 int main() {
-
     HelloServerImpl impl { 8081 };
 
     std::mutex connections_mutex;
