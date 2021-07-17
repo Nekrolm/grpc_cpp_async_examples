@@ -52,7 +52,7 @@ impl HelloConnection {
                 atomic::Ordering::SeqCst,
                 atomic::Ordering::SeqCst,
             )
-            .map_err(|_| Status::cancelled("only one active connection supported"))?;
+            .map_err(|_| Status::resource_exhausted("only one active connection supported"))?;
 
         let (tx, rx) = mpsc::channel(2);
         let mut response_queue = self.response_queue.clone();
@@ -99,11 +99,11 @@ impl BidiHelloServiceImpl {
     ) -> Result<HelloServiceOutputStream, tonic::Status> {
         let first_message = first
             .request
-            .ok_or(tonic::Status::cancelled("empty first message"))?;
+            .ok_or(tonic::Status::invalid_argument("empty first message"))?;
 
         match first_message {
             bidi_hello::hello_request::Request::Data(_) => {
-                Err(tonic::Status::cancelled("first message has to be Selector"))
+                Err(tonic::Status::invalid_argument("first message has to be Selector"))
             }
             bidi_hello::hello_request::Request::Selector(selector) => {
                 self.select_and_start_communication(selector, input_stream)
@@ -121,10 +121,10 @@ impl BidiHelloServiceImpl {
             let service_list = self
                 .available_services
                 .lock()
-                .map_err(|_| tonic::Status::internal("intefnal mutex error"))?;
+                .map_err(|_| tonic::Status::internal("internal mutex error"))?;
             service_list
                 .get(&selector.service_name)
-                .ok_or(tonic::Status::cancelled("service name not found"))?
+                .ok_or(tonic::Status::not_found("service name not found"))?
                 .clone()
         };
         service.run_communication(input_stream).await
@@ -146,7 +146,7 @@ impl BidiHelloService for BidiHelloServiceImpl {
         let service_list = self
             .available_services
             .lock()
-            .map_err(|_| tonic::Status::internal("intefnal mutex error"))?;
+            .map_err(|_| tonic::Status::internal("internal mutex error"))?;
         Ok(tonic::Response::new(bidi_hello::AvailableServices {
             services: service_list.keys().map(|x| x.clone()).collect(),
         }))
